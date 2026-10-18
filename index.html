@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cocaine Customs - 密輸入国審査</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    body {
+      background-color: #121212;
+      color: #33ff33;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    #game-container {
+      background-color: #000;
+      border: 2px solid #33ff33;
+      box-shadow: 0 0 20px rgba(51, 255, 51, 0.2);
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+      color: #ff3333;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #33ff33;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+    }
+    .officer-box {
+      background-color: #1a1a1a;
+      border: 1px solid #555;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      min-height: 100px;
+    }
+    .officer-name {
+      color: #ffcc00;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .dialogue {
+      font-size: 1.1rem;
+      color: #ffffff;
+      line-height: 1.4;
+    }
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .btn {
+      background-color: #222;
+      color: #33ff33;
+      border: 1px solid #33ff33;
+      padding: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+      border-radius: 4px;
+    }
+    .btn:hover {
+      background-color: #33ff33;
+      color: #000;
+    }
+    .game-over {
+      color: #ff3333;
+      text-align: center;
+    }
+    .game-over h2 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    .success {
+      color: #33ff33;
+      text-align: center;
+    }
+    .success h2 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    .restart-btn {
+      margin-top: 20px;
+      width: 100%;
+      text-align: center;
+      background-color: #ff3333;
+      color: #fff;
+      border: none;
+    }
+    .restart-btn:hover {
+      background-color: #ff6666;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <h1>🚨 CUSTOMS CONTROL 🚨</h1>
+  <div class="status-bar">
+    <span>CARGO: 2.5kg White Powder</span>
+    <span id="stage-display">Stage: 1/5</span>
+  </div>
+
+  <div id="game-body">
+    <div class="officer-box">
+      <div class="officer-name">CUSTOMS OFFICER:</div>
+      <div class="dialogue" id="dialogue-text">Loading...</div>
+    </div>
+
+    <div class="options-container" id="options-container">
+      <!-- ボタンがここに動的に生成されます -->
+    </div>
+  </div>
+</div>
+
+<script>
+  // 関税での質問シナリオデータ
+  const scenarios = [
+    {
+      question: "Officer: 'What is the main purpose of your visit to our country?'",
+      options: [
+        { text: "I am here for sightseeing and business.", correct: true },
+        { text: "I came to deliver 2.5kg of white powder.", correct: false, reason: "You confessed your crime immediately. BUSTED!" },
+        { text: "No, I don't have drugs.", correct: false, reason: "Unprovoked denial raised extreme suspicion. Dogs were called. BUSTED!" }
+      ]
+    },
+    {
+      question: "Officer: 'How long are you planning to stay here?'",
+      options: [
+        { text: "Just 3 days for a quick meeting.", correct: true },
+        { text: "Until I sell all my flour.", correct: false, reason: "'Flour'? They tested it on the spot. BUSTED!" },
+        { text: "Yes, I agree.", correct: false, reason: "Your English makes no sense. They pulled you over for questioning. BUSTED!" }
+      ]
+    },
+    {
+      question: "Officer: 'Did you pack all these bags by yourself?'",
+      options: [
+        { text: "A shady guy paid me $5,000 to carry this.", correct: false, reason: "Classic drug mule statement. BUSTED!" },
+        { text: "Yes, I packed everything myself.", correct: true },
+        { text: "I don't know what is inside.", correct: false, reason: "Claiming ignorance about your own luggage triggers a mandatory search. BUSTED!" }
+      ]
+    },
+    {
+      question: "Officer: 'You look extremely nervous and sweating heavily. Are you okay?'",
+      options: [
+        { text: "My suit is double-lined and very heavy... haha.", correct: false, reason: "'Double-lined'? Officers ripped the lining open and found the cocaine. BUSTED!" },
+        { text: "I am just terrified of airplanes, sorry.", correct: true },
+        { text: "I always sweat when I carry illegal items.", correct: false, reason: "Honesty is not always the best policy. BUSTED!" }
+      ]
+    },
+    {
+      question: "Officer: 'One last question. Do you have anything to declare before entering?'",
+      options: [
+        { text: "Nothing to declare, Officer.", correct: true },
+        { text: "Only some high-grade Colombian cocaine.", correct: false, reason: "You couldn't handle the pressure at the very end. BUSTED!" },
+        { text: "What happens if I say yes?", correct: false, reason: "Suspicious questioning made them send you straight to X-ray. BUSTED!" }
+      ]
+    }
+  ];
+
+  let currentStage = 0;
+
+  function loadStage() {
+    if (currentStage >= scenarios.length) {
+      showSuccess();
+      return;
+    }
+
+    document.getElementById('stage-display').innerText = `Stage: ${currentStage + 1}/${scenarios.length}`;
+    
+    const stageData = scenarios[currentStage];
+    document.getElementById('dialogue-text').innerText = stageData.question;
+
+    const optionsContainer = document.getElementById('options-container');
+    optionsContainer.innerHTML = '';
+
+    stageData.options.forEach(option => {
+      const button = document.createElement('button');
+      button.className = 'btn';
+      button.innerText = option.text;
+      button.onclick = () => handleChoice(option);
+      optionsContainer.appendChild(button);
+    });
+  }
+
+  function handleChoice(option) {
+    if (option.correct) {
+      currentStage++;
+      loadStage();
+    } else {
+      showGameOver(option.reason);
+    }
+  }
+
+  function showGameOver(reason) {
+    const gameBody = document.getElementById('game-body');
+    gameBody.innerHTML = `
+      <div class="game-over">
+        <h2>🚨 ARRESTED! 🚨</h2>
+        <p style="color: #fff; margin-bottom: 15px;"><strong>Reason:</strong> ${reason}</p>
+        <p style="font-size: 0.9rem;">Sentence: 25 Years in Federal Prison.</p>
+        <button class="btn restart-btn" onclick="resetGame()">TRY AGAIN</button>
+      </div>
+    `;
+  }
+
+  function showSuccess() {
+    const gameBody = document.getElementById('game-body');
+    gameBody.innerHTML = `
+      <div class="success">
+        <h2>🎉 MISSION PASSED! 🎉</h2>
+        <p style="color: #fff; margin-bottom: 15px;">You successfully passed customs without raising any suspicion!</p>
+        <p style="color: #ffcc00; font-size: 1.2rem;">PROFIT: $250,000</p>
+        <button class="btn restart-btn" style="background-color: #33ff33; color: #000;" onclick="resetGame()">SMUGGLE AGAIN</button>
+      </div>
+    `;
+  }
+
+  function resetGame() {
+    currentStage = 0;
+    const gameBody = document.getElementById('game-body');
+    gameBody.innerHTML = `
+      <div class="officer-box">
+        <div class="officer-name">CUSTOMS OFFICER:</div>
+        <div class="dialogue" id="dialogue-text">Loading...</div>
+      </div>
+      <div class="options-container" id="options-container"></div>
+    `;
+    loadStage();
+  }
+
+  // 初期化
+  loadStage();
+</script>
+
+</body>
+</html>
